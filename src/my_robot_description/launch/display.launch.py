@@ -17,6 +17,7 @@ def generate_launch_description():
 
     robot_description = Command(["xacro ", xacro_path])
 
+    # See `Tech Support/ROS 2 terms.md` at Obisidan to understand what is `robot_state_publisher`.
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
