@@ -71,9 +71,9 @@ def generate_launch_description():
     # Following are rviz related:
     rviz_config_path = PathJoinSubstitution(
         [
-            FindPackageShare("my_robot_description"),
-            "rviz",
-            "urdf_config.rviz",
+            FindPackageShare("my_robot_bringup"),
+            "config",
+            "my_robot_moveit.rviz",
         ]
     )
     rviz2 = Node(
