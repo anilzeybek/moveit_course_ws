@@ -35,7 +35,7 @@ def generate_launch_description():
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[ros2_controllers_yaml_path],
+        parameters=[{"robot_description": robot_description}, ros2_controllers_yaml_path],
     )
     spawner1 = Node(
         package="controller_manager",
