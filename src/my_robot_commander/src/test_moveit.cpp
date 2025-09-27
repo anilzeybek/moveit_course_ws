@@ -116,10 +116,12 @@ private:
 
   bool move_group_cartesian_path(moveit::planning_interface::MoveGroupInterface &group,
                                  const std::vector<geometry_msgs::msg::Pose> &waypoints) {
-    moveit_msgs::msg::RobotTrajectory traj;
-    double fraction = group.computeCartesianPath(waypoints, 0.1, 1.0, traj);
+    group.setStartStateToCurrentState();
 
-    if (fraction != -1.0)
+    moveit_msgs::msg::RobotTrajectory traj;
+    double fraction = group.computeCartesianPath(waypoints, 0.01, 0.0, traj);
+
+    if (fraction > 0.9)
       return arm->execute(traj) == moveit::core::MoveItErrorCode::SUCCESS;
 
     RCLCPP_ERROR(get_logger(), "Cartesian path planning failed, fraction: %f", fraction);
@@ -168,6 +170,13 @@ int main(int argc, char **argv) {
   geometry_msgs::msg::Pose pose1 = node->get_end_effector_pose();
   pose1.position.z -= 0.2;
   waypoints.push_back(pose1);
+  geometry_msgs::msg::Pose pose2 = pose1;
+  pose2.position.y += 0.2;
+  waypoints.push_back(pose2);
+  geometry_msgs::msg::Pose pose3 = pose2;
+  pose3.position.y -= 0.2;
+  pose3.position.z += 0.2;
+  waypoints.push_back(pose3);
   node->move_arm_cartesian_path(waypoints);
 
   rclcpp::shutdown();
