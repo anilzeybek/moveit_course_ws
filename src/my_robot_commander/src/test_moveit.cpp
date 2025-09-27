@@ -15,9 +15,14 @@ public:
         shared_from_this(), "arm");
     arm->setMaxVelocityScalingFactor(1.0);
     arm->setMaxAccelerationScalingFactor(1.0);
+
+    gripper = std::make_unique<moveit::planning_interface::MoveGroupInterface>(
+        shared_from_this(), "gripper");
+    gripper->setMaxVelocityScalingFactor(1.0);
+    gripper->setMaxAccelerationScalingFactor(1.0);
   }
 
-  bool move_to_named_target(std::string target_name) {
+  bool move_arm_to_named_target(std::string target_name) {
     if (!arm) {
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
@@ -26,10 +31,30 @@ public:
     arm->setStartStateToCurrentState();
     arm->setNamedTarget(target_name);
 
-    moveit::planning_interface::MoveGroupInterface::Plan plan1;
-    bool success = arm->plan(plan1) == moveit::core::MoveItErrorCode::SUCCESS;
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    bool success = arm->plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
-      success = arm->execute(plan1) == moveit::core::MoveItErrorCode::SUCCESS;
+      success = arm->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    }
+
+    return success;
+  }
+
+  bool move_gripper_to_named_target(std::string target_name) {
+    if (!gripper) {
+      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
+      return false;
+    }
+
+    gripper->setStartStateToCurrentState();
+    gripper->setNamedTarget(target_name);
+
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    bool success =
+        gripper->plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    if (success) {
+      success =
+          gripper->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
 
     return success;
@@ -37,6 +62,7 @@ public:
 
 private:
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> arm;
+  std::unique_ptr<moveit::planning_interface::MoveGroupInterface> gripper;
 };
 
 int main(int argc, char **argv) {
@@ -45,9 +71,11 @@ int main(int argc, char **argv) {
   auto node = std::make_shared<MoveitTestNode>();
   node->init();
 
-  node->move_to_named_target("pose_1");
-  rclcpp::sleep_for(std::chrono::seconds(2));
-  node->move_to_named_target("home");
+  node->move_arm_to_named_target("pose_1");
+  rclcpp::sleep_for(std::chrono::seconds(1));
+  node->move_arm_to_named_target("home");
+  rclcpp::sleep_for(std::chrono::seconds(1));
+  node->move_gripper_to_named_target("gripper_closed");
 
   rclcpp::spin(node);
 
