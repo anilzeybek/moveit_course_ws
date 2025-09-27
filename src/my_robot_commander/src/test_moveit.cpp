@@ -27,7 +27,7 @@ public:
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
     }
-    return move_interface_to_named_target(*arm, target_name);
+    return move_group_to_named_target(*arm, target_name);
   }
 
   bool move_gripper_to_named_target(const std::string target_name) {
@@ -35,19 +35,19 @@ public:
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
     }
-    return move_interface_to_named_target(*gripper, target_name);
+    return move_group_to_named_target(*gripper, target_name);
   }
 
 private:
-  bool move_interface_to_named_target(moveit::planning_interface::MoveGroupInterface &interface,
+  bool move_group_to_named_target(moveit::planning_interface::MoveGroupInterface &group,
                                       const std::string target_name) {
-    interface.setStartStateToCurrentState();
-    interface.setNamedTarget(target_name);
+    group.setStartStateToCurrentState();
+    group.setNamedTarget(target_name);
 
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    bool success = interface.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
-      success = interface.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+      success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
 
     return success;
