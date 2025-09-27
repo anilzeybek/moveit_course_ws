@@ -11,56 +11,48 @@ public:
   MoveitTestNode() : rclcpp::Node("moveit_test") {}
 
   void init() {
-    arm = std::make_unique<moveit::planning_interface::MoveGroupInterface>(
-        shared_from_this(), "arm");
+    arm =
+        std::make_unique<moveit::planning_interface::MoveGroupInterface>(shared_from_this(), "arm");
     arm->setMaxVelocityScalingFactor(1.0);
     arm->setMaxAccelerationScalingFactor(1.0);
 
-    gripper = std::make_unique<moveit::planning_interface::MoveGroupInterface>(
-        shared_from_this(), "gripper");
+    gripper = std::make_unique<moveit::planning_interface::MoveGroupInterface>(shared_from_this(),
+                                                                               "gripper");
     gripper->setMaxVelocityScalingFactor(1.0);
     gripper->setMaxAccelerationScalingFactor(1.0);
   }
 
-  bool move_arm_to_named_target(std::string target_name) {
+  bool move_arm_to_named_target(const std::string target_name) {
     if (!arm) {
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
     }
-
-    arm->setStartStateToCurrentState();
-    arm->setNamedTarget(target_name);
-
-    moveit::planning_interface::MoveGroupInterface::Plan plan;
-    bool success = arm->plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
-    if (success) {
-      success = arm->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
-    }
-
-    return success;
+    return move_interface_to_named_target(*arm, target_name);
   }
 
-  bool move_gripper_to_named_target(std::string target_name) {
+  bool move_gripper_to_named_target(const std::string target_name) {
     if (!gripper) {
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
     }
+    return move_interface_to_named_target(*gripper, target_name);
+  }
 
-    gripper->setStartStateToCurrentState();
-    gripper->setNamedTarget(target_name);
+private:
+  bool move_interface_to_named_target(moveit::planning_interface::MoveGroupInterface &interface,
+                                      const std::string target_name) {
+    interface.setStartStateToCurrentState();
+    interface.setNamedTarget(target_name);
 
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    bool success =
-        gripper->plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    bool success = interface.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
-      success =
-          gripper->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+      success = interface.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
 
     return success;
   }
 
-private:
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> arm;
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> gripper;
 };
