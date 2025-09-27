@@ -40,7 +40,7 @@ public:
   }
 
   bool move_arm_to_joint_value_target(const std::vector<double> joint_values) {
-    if (!gripper) {
+    if (!arm) {
       RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
       return false;
     }
@@ -49,18 +49,6 @@ public:
       return false;
     }
     return move_group_to_joint_value_target(*arm, joint_values);
-  }
-
-  bool move_gripper_to_joint_value_target(const std::vector<double> joint_values) {
-    if (!gripper) {
-      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
-      return false;
-    }
-    if (joint_values.size() != 1) {
-      RCLCPP_ERROR(get_logger(), "Gripper group requires 6 joints for joint value target!");
-      return false;
-    }
-    return move_group_to_joint_value_target(*gripper, joint_values);
   }
 
 private:
