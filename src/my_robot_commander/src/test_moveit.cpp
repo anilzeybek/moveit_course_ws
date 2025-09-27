@@ -3,10 +3,13 @@
 #include <memory>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/utils/moveit_error_code.h>
+#include <moveit_msgs/msg/detail/robot_trajectory__struct.hpp>
+#include <rclcpp/executors/single_threaded_executor.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
 #include <tf2/LinearMath/Quaternion.hpp>
+#include <thread>
 #include <vector>
 
 class MoveitTestNode : public rclcpp::Node {
@@ -61,6 +64,16 @@ public:
     return move_group_to_pose_target(*arm, pose_target);
   }
 
+  bool move_arm_cartesian_path(const std::vector<geometry_msgs::msg::Pose> &waypoints) {
+    if (!arm) {
+      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
+      return false;
+    }
+    return move_group_cartesian_path(*arm, waypoints);
+  }
+
+  geometry_msgs::msg::Pose get_end_effector_pose() { return arm->getCurrentPose().pose; }
+
 private:
   bool move_group_to_named_target(moveit::planning_interface::MoveGroupInterface &group,
                                   const std::string target_name) {
@@ -101,6 +114,18 @@ private:
     return success;
   }
 
+  bool move_group_cartesian_path(moveit::planning_interface::MoveGroupInterface &group,
+                                 const std::vector<geometry_msgs::msg::Pose> &waypoints) {
+    moveit_msgs::msg::RobotTrajectory traj;
+    double fraction = group.computeCartesianPath(waypoints, 0.1, 1.0, traj);
+
+    if (fraction != -1.0)
+      return arm->execute(traj) == moveit::core::MoveItErrorCode::SUCCESS;
+
+    RCLCPP_ERROR(get_logger(), "Cartesian path planning failed, fraction: %f", fraction);
+    return false;
+  }
+
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> arm;
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> gripper;
 };
@@ -109,6 +134,12 @@ int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<MoveitTestNode>();
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(node);
+  // This kind of spinner is required for working while MoveIt 2.
+  // Because it helps to be able to continue communication while moveit stuff happens.
+  auto spinner = std::thread([&executor]() { executor.spin(); });
+
   node->init();
 
   node->move_arm_to_named_target("pose_1");
@@ -122,7 +153,6 @@ int main(int argc, char **argv) {
 
   tf2::Quaternion q;
   q.setRPY(3.14, 0, 0);
-
   geometry_msgs::msg::PoseStamped pose_target;
   pose_target.header.frame_id = "base_link";
   pose_target.pose.position.x = 0.0;
@@ -132,11 +162,16 @@ int main(int argc, char **argv) {
   pose_target.pose.orientation.y = q.getY();
   pose_target.pose.orientation.z = q.getZ();
   pose_target.pose.orientation.w = q.getW();
-
   node->move_arm_to_pose_target(pose_target);
 
-  rclcpp::spin(node);
+  std::vector<geometry_msgs::msg::Pose> waypoints;
+  geometry_msgs::msg::Pose pose1 = node->get_end_effector_pose();
+  pose1.position.z -= 0.2;
+  waypoints.push_back(pose1);
+  node->move_arm_cartesian_path(waypoints);
 
   rclcpp::shutdown();
+  spinner.join();
+
   return 0;
 }
