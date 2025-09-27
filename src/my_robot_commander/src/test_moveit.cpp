@@ -5,6 +5,7 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
+#include <vector>
 
 class MoveitTestNode : public rclcpp::Node {
 public:
@@ -38,9 +39,33 @@ public:
     return move_group_to_named_target(*gripper, target_name);
   }
 
+  bool move_arm_to_joint_value_target(const std::vector<double> joint_values) {
+    if (!gripper) {
+      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
+      return false;
+    }
+    if (joint_values.size() != 6) {
+      RCLCPP_ERROR(get_logger(), "Arm group requires 6 joints for joint value target!");
+      return false;
+    }
+    return move_group_to_joint_value_target(*arm, joint_values);
+  }
+
+  bool move_gripper_to_joint_value_target(const std::vector<double> joint_values) {
+    if (!gripper) {
+      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
+      return false;
+    }
+    if (joint_values.size() != 1) {
+      RCLCPP_ERROR(get_logger(), "Gripper group requires 6 joints for joint value target!");
+      return false;
+    }
+    return move_group_to_joint_value_target(*gripper, joint_values);
+  }
+
 private:
   bool move_group_to_named_target(moveit::planning_interface::MoveGroupInterface &group,
-                                      const std::string target_name) {
+                                  const std::string target_name) {
     group.setStartStateToCurrentState();
     group.setNamedTarget(target_name);
 
@@ -49,7 +74,19 @@ private:
     if (success) {
       success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
+    return success;
+  }
 
+  bool move_group_to_joint_value_target(moveit::planning_interface::MoveGroupInterface &group,
+                                        const std::vector<double> joint_values) {
+    group.setStartStateToCurrentState();
+    group.setJointValueTarget(joint_values);
+
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    if (success) {
+      success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    }
     return success;
   }
 
@@ -68,6 +105,8 @@ int main(int argc, char **argv) {
   node->move_arm_to_named_target("home");
   rclcpp::sleep_for(std::chrono::seconds(1));
   node->move_gripper_to_named_target("gripper_closed");
+  rclcpp::sleep_for(std::chrono::seconds(1));
+  node->move_arm_to_joint_value_target({1.5, 0.5, 0.0, 1.5, 0.0, -0.7});
 
   rclcpp::spin(node);
 
