@@ -1,13 +1,14 @@
+#include <chrono>
 #include <memory>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/utils/moveit_error_code.h>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/utilities.hpp>
 
 class MoveitTestNode : public rclcpp::Node {
 public:
-  MoveitTestNode() : rclcpp::Node("moveit_test") {
-  }
+  MoveitTestNode() : rclcpp::Node("moveit_test") {}
 
   void init() {
     arm = std::make_unique<moveit::planning_interface::MoveGroupInterface>(
@@ -43,7 +44,10 @@ int main(int argc, char **argv) {
 
   auto node = std::make_shared<MoveitTestNode>();
   node->init();
+
   node->move_to_named_target("pose_1");
+  rclcpp::sleep_for(std::chrono::seconds(2));
+  node->move_to_named_target("home");
 
   rclcpp::spin(node);
 
