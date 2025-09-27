@@ -1,10 +1,12 @@
 #include <chrono>
+#include <geometry_msgs/msg/detail/pose_stamped__struct.hpp>
 #include <memory>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/utils/moveit_error_code.h>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
 #include <vector>
 
 class MoveitTestNode : public rclcpp::Node {
@@ -51,6 +53,14 @@ public:
     return move_group_to_joint_value_target(*arm, joint_values);
   }
 
+  bool move_arm_to_pose_target(const geometry_msgs::msg::PoseStamped pose_target) {
+    if (!arm) {
+      RCLCPP_ERROR(get_logger(), "MoveGroupInterface not initialized!");
+      return false;
+    }
+    return move_group_to_pose_target(*arm, pose_target);
+  }
+
 private:
   bool move_group_to_named_target(moveit::planning_interface::MoveGroupInterface &group,
                                   const std::string target_name) {
@@ -78,6 +88,19 @@ private:
     return success;
   }
 
+  bool move_group_to_pose_target(moveit::planning_interface::MoveGroupInterface &group,
+                                 const geometry_msgs::msg::PoseStamped pose_target) {
+    group.setStartStateToCurrentState();
+    group.setPoseTarget(pose_target);
+
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    if (success) {
+      success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+    }
+    return success;
+  }
+
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> arm;
   std::unique_ptr<moveit::planning_interface::MoveGroupInterface> gripper;
 };
@@ -95,6 +118,22 @@ int main(int argc, char **argv) {
   node->move_gripper_to_named_target("gripper_closed");
   rclcpp::sleep_for(std::chrono::seconds(1));
   node->move_arm_to_joint_value_target({1.5, 0.5, 0.0, 1.5, 0.0, -0.7});
+  rclcpp::sleep_for(std::chrono::seconds(1));
+
+  tf2::Quaternion q;
+  q.setRPY(3.14, 0, 0);
+
+  geometry_msgs::msg::PoseStamped pose_target;
+  pose_target.header.frame_id = "base_link";
+  pose_target.pose.position.x = 0.0;
+  pose_target.pose.position.y = -0.7;
+  pose_target.pose.position.z = 0.4;
+  pose_target.pose.orientation.x = q.getX();
+  pose_target.pose.orientation.y = q.getY();
+  pose_target.pose.orientation.z = q.getZ();
+  pose_target.pose.orientation.w = q.getW();
+
+  node->move_arm_to_pose_target(pose_target);
 
   rclcpp::spin(node);
 
