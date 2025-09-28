@@ -138,8 +138,10 @@ int main(int argc, char **argv) {
   auto node = std::make_shared<MoveitTestNode>();
   rclcpp::executors::SingleThreadedExecutor executor;
   executor.add_node(node);
-  // This kind of spinner is required for working while MoveIt 2.
-  // Because it helps to be able to continue communication while moveit stuff happens.
+  // This kind of executor is required for working while MoveIt 2.
+  // Because it helps to be able to continue callbacks to execute while moveit stuff happens.
+  // To understand what is this, take a look at the ROS 2 executors section in
+  // `Tech Support/ROS 2 basics.md` at Obsidian.
   auto spinner = std::thread([&executor]() { executor.spin(); });
 
   node->init();
