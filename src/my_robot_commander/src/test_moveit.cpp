@@ -12,18 +12,20 @@
 #include <thread>
 #include <vector>
 
+using moveit::planning_interface::MoveGroupInterface;
+
 class MoveitTestNode : public rclcpp::Node {
 public:
   MoveitTestNode() : rclcpp::Node("moveit_test") {}
 
   void init() {
-    arm =
-        std::make_unique<moveit::planning_interface::MoveGroupInterface>(shared_from_this(), "arm");
+    arm = std::make_unique<MoveGroupInterface>(shared_from_this(), "arm");
+
+    // Following two are there to make robot go fast.
     arm->setMaxVelocityScalingFactor(1.0);
     arm->setMaxAccelerationScalingFactor(1.0);
 
-    gripper = std::make_unique<moveit::planning_interface::MoveGroupInterface>(shared_from_this(),
-                                                                               "gripper");
+    gripper = std::make_unique<MoveGroupInterface>(shared_from_this(), "gripper");
     gripper->setMaxVelocityScalingFactor(1.0);
     gripper->setMaxAccelerationScalingFactor(1.0);
   }
@@ -75,12 +77,11 @@ public:
   geometry_msgs::msg::Pose get_end_effector_pose() { return arm->getCurrentPose().pose; }
 
 private:
-  bool move_group_to_named_target(moveit::planning_interface::MoveGroupInterface &group,
-                                  const std::string target_name) {
+  bool move_group_to_named_target(MoveGroupInterface &group, const std::string target_name) {
     group.setStartStateToCurrentState();
     group.setNamedTarget(target_name);
 
-    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    MoveGroupInterface::Plan plan;
     bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
       success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
@@ -88,12 +89,12 @@ private:
     return success;
   }
 
-  bool move_group_to_joint_value_target(moveit::planning_interface::MoveGroupInterface &group,
+  bool move_group_to_joint_value_target(MoveGroupInterface &group,
                                         const std::vector<double> joint_values) {
     group.setStartStateToCurrentState();
     group.setJointValueTarget(joint_values);
 
-    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    MoveGroupInterface::Plan plan;
     bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
       success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
@@ -101,12 +102,12 @@ private:
     return success;
   }
 
-  bool move_group_to_pose_target(moveit::planning_interface::MoveGroupInterface &group,
+  bool move_group_to_pose_target(MoveGroupInterface &group,
                                  const geometry_msgs::msg::PoseStamped pose_target) {
     group.setStartStateToCurrentState();
     group.setPoseTarget(pose_target);
 
-    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    MoveGroupInterface::Plan plan;
     bool success = group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     if (success) {
       success = group.execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
@@ -114,7 +115,7 @@ private:
     return success;
   }
 
-  bool move_group_cartesian_path(moveit::planning_interface::MoveGroupInterface &group,
+  bool move_group_cartesian_path(MoveGroupInterface &group,
                                  const std::vector<geometry_msgs::msg::Pose> &waypoints) {
     group.setStartStateToCurrentState();
 
@@ -128,8 +129,8 @@ private:
     return false;
   }
 
-  std::unique_ptr<moveit::planning_interface::MoveGroupInterface> arm;
-  std::unique_ptr<moveit::planning_interface::MoveGroupInterface> gripper;
+  std::unique_ptr<MoveGroupInterface> arm;
+  std::unique_ptr<MoveGroupInterface> gripper;
 };
 
 int main(int argc, char **argv) {
